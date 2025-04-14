@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud To-Do App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="theme-toggle">
+            <label class="switch">
+                <input type="checkbox" id="theme-switch">
+                <span class="slider round"></span>
+            </label>
+            <span class="theme-label">🌞 / 🌙</span>
+        </div>
+
+        <h1>✅ Cloud To-Do App</h1>
+
+        <form method="POST" action="/add">
+            <input type="text" name="content" placeholder="Add a new task" required>
+            <button type="submit">Add</button>
+        </form>
+
+        {% if tasks %}
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Task</th>
+                <th>Status</th>
+                <th>Change Status</th>
+                <th>Delete</th>
+            </tr>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task.id }}</td>
+                <td>{{ task.content }}</td>
+                <td class="{{ task.status|lower }}">{{ task.status }}</td>
+                <td>
+                    <form method="POST" action="/update/{{ task.id }}">
+                        <select name="status">
+                            <option value="Pending" {% if task.status == 'Pending' %}selected{% endif %}>❌ Pending</option>
+                            <option value="Done" {% if task.status == 'Done' %}selected{% endif %}>✅ Done</option>
+                        </select>
+                        <button type="submit">Update</button>
+                    </form>
+                </td>
+                <td><a href="/delete/{{ task.id }}" class="delete-btn">🗑️</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+            <p>No tasks yet!</p>
+        {% endif %}
+        
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+
+    <script>
+        const toggleSwitch = document.getElementById('theme-switch');
+        const body = document.body;
+
+        // On page load, apply stored theme
+        if (localStorage.getItem('theme') === 'dark') {
+            body.classList.add('dark');
+            toggleSwitch.checked = true;
+        }
+
+        toggleSwitch.addEventListener('change', () => {
+            if (toggleSwitch.checked) {
+                body.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+    </script>
+</body>
+</html>
