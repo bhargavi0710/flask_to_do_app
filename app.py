@@ -11,9 +11,9 @@ import os
 
 # Initialize the app and extensions
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://cloud_todo_db_user:slB0XdBQBgsLkHVXtcdTk0z4bM3Nqbiw@dpg-d00k8pmuk2gs739ad080-a.oregon-postgres.render.com/cloud_todo_db'
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
