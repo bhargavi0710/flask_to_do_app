@@ -26,7 +26,6 @@
         {% if tasks %}
         <table>
             <tr>
-                <th>ID</th>
                 <th>Task</th>
                 <th>Status</th>
                 <th>Change Status</th>
@@ -34,7 +33,7 @@
             </tr>
             {% for task in tasks %}
             <tr>
-                <td>{{ task.id }}</td>
+                <!--<td>{{ task.id }}</td>-->
                 <td>{{ task.content }}</td>
                 <td class="{{ task.status|lower }}">{{ task.status }}</td>
                 <td>
