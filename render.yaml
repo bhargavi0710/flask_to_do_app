@@ -1,10 +1,11 @@
 services:
   - type: web
-    name: cloud-todo-app
+    name: flask-firestore-todo
     env: python
-    plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app"
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
     envVars:
-      - key: FLASK_ENV
-        value: production
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: firebase_key.json
+      - key: b7b329c0fbe4f0dbab1b5f7123701ef197e4d3f6d2c391a74a3762fa5a89a19f
+        value: your-long-secret-key

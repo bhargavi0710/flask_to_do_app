@@ -1,127 +1,133 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_login import UserMixin, login_user, login_required, logout_user, current_user, LoginManager
-from flask_bcrypt import Bcrypt
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField
-from wtforms.validators import InputRequired, Length, Email, EqualTo
-
 import os
+from flask import Flask, render_template, redirect, url_for, request, flash
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField, EmailField
+from wtforms.validators import DataRequired, Email, EqualTo, Length
+from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin, current_user
+from flask_bcrypt import Bcrypt
+import firebase_admin
+from firebase_admin import credentials, firestore
+import uuid
 
-# Initialize the app and extensions
+# Initialize Flask
 app = Flask(__name__)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.urandom(24)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://cloud_todo_db_user:slB0XdBQBgsLkHVXtcdTk0z4bM3Nqbiw@dpg-d00k8pmuk2gs739ad080-a.oregon-postgres.render.com/cloud_todo_db'
+app.secret_key = 'b7b329c0fbe4f0dbab1b5f7123701ef197e4d3f6d2c391a74a3762fa5a89a19f'  
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate('firebase_key.json')
+firebase_admin.initialize_app(cred)
+db = firestore.client()
+
+# Flask Extensions
 bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# User Model
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
 
-    def __repr__(self):
-        return f'<User {self.username}>'
+### ----- User Class -----
+class User(UserMixin):
+    def __init__(self, id_, username, email, password_hash):
+        self.id = id_
+        self.username = username
+        self.email = email
+        self.password_hash = password_hash
 
-# Task Model
-class Task(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    content = db.Column(db.String(200), nullable=False)
-    status = db.Column(db.String(20), default='Pending')
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Added user_id column
-    user = db.relationship('User', backref=db.backref('tasks', lazy=True))
 
-    def __repr__(self):
-        return f'<Task {self.id}>'
-
-# Forms
-class RegistrationForm(FlaskForm):
-    username = StringField('Username', validators=[InputRequired(), Length(min=4, max=100)])
-    email = StringField('Email', validators=[InputRequired(), Email()])
-    password = PasswordField('Password', validators=[InputRequired(), Length(min=8)])
-    confirm_password = PasswordField('Confirm Password', validators=[InputRequired(), EqualTo('password')])
+### ----- Forms -----
+class RegisterForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=3)])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Register')
 
 class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[InputRequired()])
-    password = PasswordField('Password', validators=[InputRequired()])
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
 
-# Login Manager User Loader
+
+### ----- Load User -----
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user_doc = db.collection('users').document(user_id).get()
+    if user_doc.exists:
+        data = user_doc.to_dict()
+        return User(user_id, data['username'], data['email'], data['password'])
+    return None
 
-# Home Route - Show all tasks
+
+### ----- Routes -----
 @app.route('/')
 @login_required
 def index():
-    tasks = Task.query.filter_by(user_id=current_user.id).all()
+    tasks_ref = db.collection('tasks').where('user_id', '==', current_user.id)
+    tasks_docs = tasks_ref.stream()
+    tasks = []
+
+    for doc in tasks_docs:
+        task = doc.to_dict()
+        task['id'] = doc.id
+        tasks.append(task)
+
     return render_template('index.html', tasks=tasks)
 
-# Add new task
-@app.route('/add', methods=['POST'])
-@login_required
-def add():
-    content = request.form['content']
-    new_task = Task(content=content, user_id=current_user.id)
-    db.session.add(new_task)
-    db.session.commit()
-    return redirect('/')
 
-# Update task status
-@app.route('/update/<int:id>', methods=['POST'])
-@login_required
-def update(id):
-    task = Task.query.get_or_404(id)
-    task.status = request.form['status']
-    db.session.commit()
-    return redirect('/')
-
-# Delete a task
-@app.route('/delete/<int:id>')
-@login_required
-def delete(id):
-    task = Task.query.get_or_404(id)
-    db.session.delete(task)
-    db.session.commit()
-    return redirect('/')
-
-# Register Route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    form = RegistrationForm()
+    form = RegisterForm()
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        new_user = User(username=form.username.data, email=form.email.data, password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Account created successfully! Please log in.', 'success')
+        username = form.username.data
+        email = form.email.data
+        password = form.password.data
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+
+        # Check if user already exists
+        users_ref = db.collection('users')
+        existing = users_ref.where('username', '==', username).get()
+        if existing:
+            flash('Username already exists.', 'danger')
+            return redirect(url_for('register'))
+
+        user_id = str(uuid.uuid4())
+        users_ref.document(user_id).set({
+            'username': username,
+            'email': email,
+            'password': hashed_password
+        })
+
+        flash('Account created! Please log in.', 'success')
         return redirect(url_for('login'))
+
     return render_template('register.html', form=form)
 
-# Login Route
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user and bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user)
-            flash('Login successful!', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
+        username = form.username.data
+        password = form.password.data
+
+        users_ref = db.collection('users')
+        docs = users_ref.where('username', '==', username).get()
+        if docs:
+            doc = docs[0]
+            data = doc.to_dict()
+            if bcrypt.check_password_hash(data['password'], password):
+                user = User(doc.id, data['username'], data['email'], data['password'])
+                login_user(user)
+                flash('Logged in successfully.', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Incorrect password.', 'danger')
         else:
-            flash('Login failed. Check your username and/or password.', 'danger')
+            flash('Username not found.', 'danger')
+
     return render_template('login.html', form=form)
 
-# Logout Route
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -129,6 +135,44 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
-# Run the app
+
+@app.route('/add', methods=['POST'])
+@login_required
+def add():
+    content = request.form['content']
+    db.collection('tasks').add({
+        'user_id': current_user.id,
+        'content': content,
+        'status': 'Pending'
+    })
+    return redirect(url_for('index'))
+
+
+@app.route('/update/<task_id>', methods=['POST'])
+@login_required
+def update(task_id):
+    new_status = request.form['status']
+    task_ref = db.collection('tasks').document(task_id)
+    task = task_ref.get()
+
+    if task.exists and task.to_dict().get('user_id') == current_user.id:
+        task_ref.update({'status': new_status})
+
+    return redirect(url_for('index'))
+
+
+@app.route('/delete/<task_id>')
+@login_required
+def delete(task_id):
+    task_ref = db.collection('tasks').document(task_id)
+    task = task_ref.get()
+
+    if task.exists and task.to_dict().get('user_id') == current_user.id:
+        task_ref.delete()
+
+    return redirect(url_for('index'))
+
+
+### ----- Main Entry -----
 if __name__ == '__main__':
     app.run(debug=True)
