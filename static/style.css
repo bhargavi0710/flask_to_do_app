@@ -201,36 +201,61 @@ body.dark .progress-bar-wrapper {
 body.dark .progress-bar-section.partial {
     color: #000;
 }
+/* Progress Bar Styles */
+.progress-container {
+    margin-top: 30px;
+}
+
 .progress-bar-wrapper {
     display: flex;
-    width: 100%;
     height: 30px;
-    margin-top: 10px;
-    border-radius: 8px;
+    background: #e0e0e0;
+    border-radius: 20px;
     overflow: hidden;
-    background: #ddd;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .progress-bar-section {
     height: 100%;
-    width: var(--width, 0%);
-    line-height: 30px;
-    font-weight: bold;
-    text-align: center;
     color: white;
+    font-weight: bold;
     font-size: 0.9em;
+    line-height: 30px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: width 0.4s ease-in-out;
 }
 
-.completed {
+.progress-bar-section.completed {
     background-color: #28a745;
+    width: var(--width, 0%);
 }
 
-.partial {
+.progress-bar-section.partial {
     background-color: #ffc107;
-    color: #333;
+    width: var(--width, 0%);
 }
 
-.pending {
+.progress-bar-section.pending {
     background-color: #dc3545;
+    width: var(--width, 0%);
 }
 
+/* Dark mode adaptation */
+body.dark .progress-bar-wrapper {
+    background: #444;
+    box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.1);
+}
+
+body.dark .progress-bar-section.completed {
+    background-color: #2ecc71;
+}
+
+body.dark .progress-bar-section.partial {
+    background-color: #f1c40f;
+}
+
+body.dark .progress-bar-section.pending {
+    background-color: #e74c3c;
+}
