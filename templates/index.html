@@ -2,24 +2,24 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cloud To-Do App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
     <div class="container">
+        <!-- Theme Toggle -->
         <div class="theme-toggle">
             <label class="switch">
-                <input type="checkbox" id="theme-switch">
+                <input type="checkbox" id="theme-switch" />
                 <span class="slider round"></span>
             </label>
             <span class="theme-label">🌞 / 🌙</span>
         </div>
 
         <h1>✅ Cloud To-Do App</h1>
-
         <h2>Hello, {{ current_user.username }}!</h2>
 
         <!-- Search Bar -->
@@ -27,39 +27,46 @@
             <input type="text" name="q" placeholder="Search tasks..." value="{{ search_query }}">
         </form>
 
-        <!-- Add Task -->
+        <!-- Add Task Form -->
         <form method="POST" action="/add">
-            <input type="text" name="content" placeholder="Add a new task" required>
+            <input type="text" name="content" placeholder="Add a new task" required />
             <button type="submit">Add</button>
         </form>
 
         <!-- Progress Bar -->
-        <!-- Progress Bar -->
         <div class="progress-container">
             <h3>Progress</h3>
+
             {% set completed = progress.Completed if progress and 'Completed' in progress else 0 %}
             {% set partial = progress['Partially Completed'] if progress and 'Partially Completed' in progress else 0 %}
             {% set pending = progress.Pending if progress and 'Pending' in progress else 0 %}
             {% set total = progress.Total if progress and 'Total' in progress and progress.Total > 0 else 1 %}
 
+            {% set completed_percent = (completed / total * 100) | round(0) %}
+            {% set partial_percent = (partial / total * 100) | round(0) %}
+            {% set pending_percent = (pending / total * 100) | round(0) %}
+
             <div class="progress-bar">
-                <div class="bar completed" style="width: '{{ (completed / total * 100) | round(0) }}%'">
-                    {{ (completed / total * 100) | round(0) }}%
+                <div class="bar completed" style="width: {{ completed_percent | default(0) }}%;">
+                    {{ completed_percent }}%
                 </div>
-                <div class="bar partial" style="width: '{{ (partial / total * 100) | round(0) }}%'">
-                    {{ (partial / total * 100) | round(0) }}%
+                <div class="bar partial" style="width: {{ partial_percent | default(0) }}%;">
+                    {{ partial_percent }}%
                 </div>
-                <div class="bar pending" style="width: '{{ (pending / total * 100) | round(0) }}%'">
-                    {{ (pending / total * 100) | round(0) }}%
+                <div class="bar pending" style="width: {{ pending_percent | default(0) }}%;">
+                    {{ pending_percent }}%
                 </div>
+                
             </div>
-            
+
             <div class="progress-labels">
                 <span>✅ Completed: {{ completed }}</span>
                 <span>⚠️ Partial: {{ partial }}</span>
                 <span>❌ Pending: {{ pending }}</span>
             </div>
         </div>
+
+
         <!-- Task Table -->
         {% if tasks %}
         <table>
@@ -97,11 +104,11 @@
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 
+    <!-- Theme Toggle Script -->
     <script>
         const toggleSwitch = document.getElementById('theme-switch');
         const body = document.body;
 
-        // On page load, apply stored theme
         if (localStorage.getItem('theme') === 'dark') {
             body.classList.add('dark');
             toggleSwitch.checked = true;
