@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cloud To-Do App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
     <div class="container">
         <div class="theme-toggle">
@@ -18,11 +20,44 @@
 
         <h1>✅ Cloud To-Do App</h1>
 
+        <h2>Hello, {{ current_user.username }}!</h2>
+
+        <!-- Search Bar -->
+        <form method="get">
+            <input type="text" name="q" placeholder="Search tasks..." value="{{ search_query }}">
+        </form>
+
+        <!-- Add Task -->
         <form method="POST" action="/add">
             <input type="text" name="content" placeholder="Add a new task" required>
             <button type="submit">Add</button>
         </form>
 
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <h3>Progress</h3>
+            <div class="progress-bar-wrapper">
+                {% set completed = progress.Completed if progress and 'Completed' in progress else 0 %}
+                {% set partial = progress['Partially Completed'] if progress and 'Partially Completed' in progress else
+                0 %}
+                {% set pending = progress.Pending if progress and 'Pending' in progress else 0 %}
+                {% set total = progress.Total if progress and 'Total' in progress and progress.Total > 0 else 1 %}
+
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar-section completed" style="--width: {{ (completed / total * 100) | round(0) }}%">
+                        Completed ({{ completed }})
+                    </div>
+                    <div class="progress-bar-section partial" style="--width: {{ (partial / total * 100) | round(0) }}%">
+                        Partial ({{ partial }})
+                    </div>
+                    <div class="progress-bar-section pending" style="--width: {{ (pending / total * 100) | round(0) }}%">
+                        Pending ({{ pending }})
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Table -->
         {% if tasks %}
         <table>
             <tr>
@@ -33,14 +68,17 @@
             </tr>
             {% for task in tasks %}
             <tr>
-                <!--<td>{{ task.id }}</td>-->
                 <td>{{ task.content }}</td>
                 <td class="{{ task.status|lower }}">{{ task.status }}</td>
                 <td>
                     <form method="POST" action="/update/{{ task.id }}">
                         <select name="status">
-                            <option value="Pending" {% if task.status == 'Pending' %}selected{% endif %}>❌ Pending</option>
-                            <option value="Done" {% if task.status == 'Done' %}selected{% endif %}>✅ Done</option>
+                            <option value="Pending" {% if task.status=='Pending' %}selected{% endif %}>❌ Pending
+                            </option>
+                            <option value="Partially Completed" {% if task.status=='Partially Completed' %}selected{%
+                                endif %}>⚠️ Partially Completed</option>
+                            <option value="Completed" {% if task.status=='Completed' %}selected{% endif %}>✅ Completed
+                            </option>
                         </select>
                         <button type="submit">Update</button>
                     </form>
@@ -50,9 +88,9 @@
             {% endfor %}
         </table>
         {% else %}
-            <p>No tasks yet!</p>
+        <p>No tasks yet!</p>
         {% endif %}
-        
+
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 
@@ -77,4 +115,5 @@
         });
     </script>
 </body>
+
 </html>

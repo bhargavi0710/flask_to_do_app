@@ -152,3 +152,85 @@ input:checked + .slider:before {
     margin-left: 10px;
     font-size: 1.2em;
 }
+
+/* Progress Bar Styles */
+.progress-container {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.progress-bar-wrapper {
+    display: flex;
+    height: 25px;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #e9ecef;
+}
+
+.progress-bar-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.85em;
+    height: 100%;
+    white-space: nowrap;
+}
+
+.progress-bar-section.completed {
+    background-color: #28a745;
+}
+
+.progress-bar-section.partial {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.progress-bar-section.pending {
+    background-color: #dc3545;
+}
+
+/* Dark Mode for Progress Bar */
+body.dark .progress-bar-wrapper {
+    border-color: #444;
+    background-color: #333;
+}
+
+body.dark .progress-bar-section.partial {
+    color: #000;
+}
+.progress-bar-wrapper {
+    display: flex;
+    width: 100%;
+    height: 30px;
+    margin-top: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #ddd;
+}
+
+.progress-bar-section {
+    height: 100%;
+    width: var(--width, 0%);
+    line-height: 30px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+    font-size: 0.9em;
+}
+
+.completed {
+    background-color: #28a745;
+}
+
+.partial {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.pending {
+    background-color: #dc3545;
+}
+
